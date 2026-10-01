@@ -1,0 +1,53 @@
+# mixpanel_headless
+
+> Python library for working with Mixpanel analytics data, designed for AI coding agents
+
+mixpanel_headless is a complete programmable interface to Mixpanel analytics.
+Python library and CLI for discovery, querying, streaming, and entity management.
+Discover your schema, run live analytics (segmentation, funnels, retention, flows),
+and stream data for processing.
+
+
+## Getting Started
+
+- [Home](https://mixpanel.github.io/mixpanel-headless/index.md): Project overview and key concepts
+- [Installation](https://mixpanel.github.io/mixpanel-headless/getting-started/installation/index.md): Install with pip or uv
+- [Quick Start](https://mixpanel.github.io/mixpanel-headless/getting-started/quickstart/index.md): First queries in 5 minutes
+- [Configuration](https://mixpanel.github.io/mixpanel-headless/getting-started/configuration/index.md): Accounts, env vars, config files
+
+## User Guide
+
+- [The Unified Query System](https://mixpanel.github.io/mixpanel-headless/guide/unified-query-system/index.md): Unified query system — one vocabulary, four analytics engines
+- [Data Discovery](https://mixpanel.github.io/mixpanel-headless/guide/discovery/index.md): Explore schema, events, properties, cohorts
+- [Insights Queries](https://mixpanel.github.io/mixpanel-headless/guide/query/index.md): Typed insights queries — DAU, formulas, filters, breakdowns
+- [Funnel Queries](https://mixpanel.github.io/mixpanel-headless/guide/query-funnels/index.md): Typed funnel queries — steps, exclusions, conversion windows
+- [Retention Queries](https://mixpanel.github.io/mixpanel-headless/guide/query-retention/index.md): Typed retention queries — event pairs, custom buckets, alignment modes
+- [Flow Queries](https://mixpanel.github.io/mixpanel-headless/guide/query-flows/index.md): Typed flow queries — path analysis, direction controls, visualization modes
+- [User Profile Queries](https://mixpanel.github.io/mixpanel-headless/guide/query-users/index.md): Typed user profile queries — filtering, sorting, parallel fetching, aggregate counts
+- [Live Analytics](https://mixpanel.github.io/mixpanel-headless/guide/live-analytics/index.md): Segmentation, funnels, retention
+- [Streaming Data](https://mixpanel.github.io/mixpanel-headless/guide/streaming/index.md): Stream events and profiles for ETL
+- [Session Replay](https://mixpanel.github.io/mixpanel-headless/guide/session-replay/index.md): Discover, fetch, and analyze rrweb session recordings
+- [Report Links](https://mixpanel.github.io/mixpanel-headless/guide/report-links/index.md): Share a query as a Mixpanel report URL; resolve a report URL, slug, or shortlink back into runnable params
+- [Entity Management](https://mixpanel.github.io/mixpanel-headless/guide/entity-management/index.md): Create, update, delete dashboards, reports, and cohorts
+- [Data Governance](https://mixpanel.github.io/mixpanel-headless/guide/data-governance/index.md): Manage Lexicon definitions, drop filters, custom properties, custom events, lookup tables, schema registry, enforcement, auditing, anomalies, and event deletion requests
+- [Business Context](https://mixpanel.github.io/mixpanel-headless/guide/business-context/index.md): Read and write the markdown business context that grounds AI assistants (org and project scopes, 50,000-char cap)
+- [Built-in Help](https://mixpanel.github.io/mixpanel-headless/guide/built-in-help/index.md): Offline API reference from Python (mp.help, mp.reference) and the CLI (mp help): query grammar, text/markdown/json formats, --domain filter, agent tips
+
+## API Reference
+
+- [Overview](https://mixpanel.github.io/mixpanel-headless/api/index.md): Python API overview
+- [Workspace](https://mixpanel.github.io/mixpanel-headless/api/workspace/index.md): Workspace class - main entry point
+- [Auth](https://mixpanel.github.io/mixpanel-headless/api/auth/index.md): Authentication and credentials
+- [Exceptions](https://mixpanel.github.io/mixpanel-headless/api/exceptions/index.md): Exception hierarchy
+- [Result Types](https://mixpanel.github.io/mixpanel-headless/api/types/index.md): Result types (SegmentationResult, etc.)
+- [Built-in Help](https://mixpanel.github.io/mixpanel-headless/api/help/index.md): Built-in help — mixpanel_headless.reference (describe, search, render, clear_cache), the HelpEntry / SearchResult result types, HelpLookupError and HelpDomainError
+
+## CLI Reference
+
+- [Overview](https://mixpanel.github.io/mixpanel-headless/cli/index.md): CLI overview and output formats
+- [Commands](https://mixpanel.github.io/mixpanel-headless/cli/commands/index.md): Complete command reference
+
+## Architecture
+
+- [Design](https://mixpanel.github.io/mixpanel-headless/architecture/design/index.md): Layered architecture and services
+

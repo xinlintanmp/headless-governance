@@ -1,0 +1,3 @@
+claude-agent-sdk
+mixpanel_headless
+python-dotenv
