@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import os
 import sys
+from typing import Any
 from datetime import date
 from pathlib import Path
 
@@ -20,9 +21,12 @@ from claude_agent_sdk import (
     ClaudeSDKClient,
     CLIConnectionError,
     CLINotFoundError,
+    PermissionResultAllow,
+    PermissionResultDeny,
     ProcessError,
     ResultMessage,
     TextBlock,
+    ToolPermissionContext,
     ToolUseBlock,
     create_sdk_mcp_server,
 )
@@ -33,12 +37,14 @@ from workspace import (
     WORKSPACE_ID_RESOLVED,
     load_business_context,
 )
-from tools import ALL_TOOLS
+from tools import ALL_TOOLS, WRITE_TOOL_NAMES
 
 SERVER_NAME = "governance"
 PROMPT_PATH = Path(__file__).parent / "prompts" / "system_prompt.md"
 DEFAULT_MODEL = "claude-sonnet-5"
-MAX_TURNS = 10
+# Governance answers need multi-step chains: discover names, look up
+# definitions, then cross-check. 10 turns cut those short.
+MAX_TURNS = 25
 
 # Built-in tools Claude must not reach. The allowlist alone already excludes
 # them; this is a second, explicit barrier so the agent cannot read files,
@@ -61,6 +67,7 @@ BLOCKED_TOOLS = [
 ]
 
 DIM = "\033[2m"
+BOLD = "\033[1m"
 RESET = "\033[0m"
 
 
@@ -102,6 +109,8 @@ def build_options(system_prompt: str) -> ClaudeAgentOptions:
         # Do not load CLAUDE.md, project settings, or user settings.
         setting_sources=[],
         strict_mcp_config=True,
+        # Nothing that writes to Mixpanel runs without an explicit yes.
+        can_use_tool=confirm_writes,
         # Force direct Anthropic API, ignoring any Vertex/Bedrock routing
         # inherited from the shell (e.g. CLAUDE_CODE_USE_VERTEX=1).
         env={
@@ -109,6 +118,50 @@ def build_options(system_prompt: str) -> ClaudeAgentOptions:
             "CLAUDE_CODE_USE_BEDROCK": "0",
             "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", ""),
         },
+    )
+
+
+async def confirm_writes(
+    tool_name: str, tool_input: dict[str, Any], context: ToolPermissionContext
+) -> PermissionResultAllow | PermissionResultDeny:
+    """Ask before any tool that changes Mixpanel actually runs.
+
+    Read-only tools pass straight through. Write tools print exactly what
+    would change and wait for an explicit 'yes'. ``input()`` is blocking, so
+    it runs in a worker thread to keep the event loop free.
+    """
+    short_name = tool_name.split("__")[-1]
+    if short_name not in WRITE_TOOL_NAMES:
+        return PermissionResultAllow()
+
+    event_name = tool_input.get("event_name", "?")
+    fields = {k: v for k, v in tool_input.items() if k != "event_name" and v is not None}
+
+    print(f"\n{BOLD}── Mixpanel write requested ──{RESET}")
+    print(f"  tool  : {short_name}")
+    print(f"  event : {event_name}")
+    for key, value in fields.items():
+        marker = "  (STOPS INGESTION)" if key == "dropped" and value else ""
+        print(f"  {key:<13}→ {value!r}{marker}")
+    if not fields:
+        print("  (no field values supplied)")
+
+    try:
+        answer = await asyncio.to_thread(input, f"{BOLD}Apply this change? [y/N] {RESET}")
+    except (EOFError, KeyboardInterrupt):
+        answer = ""
+
+    if answer.strip().lower() in ("y", "yes"):
+        print(f"{DIM}[approved]{RESET}")
+        return PermissionResultAllow()
+
+    print(f"{DIM}[denied — nothing was changed]{RESET}")
+    return PermissionResultDeny(
+        message=(
+            "The user declined this change. Do not retry it or attempt the same "
+            "edit another way. Report that it was not applied and ask what they "
+            "would like instead."
+        )
     )
 
 
