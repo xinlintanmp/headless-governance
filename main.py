@@ -37,6 +37,7 @@ from workspace import (
     WORKSPACE_ID_RESOLVED,
     load_business_context,
 )
+from memory import MEMORY_PATH, load_memory
 from tools import ALL_TOOLS, WRITE_TOOL_NAMES
 
 SERVER_NAME = "governance"
@@ -76,7 +77,7 @@ RESET = "\033[0m"
 # --------------------------------------------------------------------------
 
 
-def build_system_prompt(business_context: str) -> str:
+def build_system_prompt(business_context: str, memory: str) -> str:
     """Read the prompt template and substitute the four placeholders."""
     try:
         template = PROMPT_PATH.read_text(encoding="utf-8")
@@ -91,6 +92,7 @@ def build_system_prompt(business_context: str) -> str:
         .replace("{project_id}", str(PROJECT_ID))
         .replace("{workspace_id}", str(WORKSPACE_ID_RESOLVED))
         .replace("{business_context}", business_context or "No business context configured.")
+        .replace("{memory}", memory or "Nothing remembered yet.")
     )
 
 
@@ -218,6 +220,7 @@ HELP = """Commands:
   /exit      quit
   /clear     start a fresh conversation
   /context   show the loaded business context summary
+  /memory    show what the agent remembers
 """
 
 
@@ -228,7 +231,13 @@ async def run() -> None:
     business_context, stats = load_business_context()
     print("  " + format_context_summary(stats))
 
-    options = build_options(build_system_prompt(business_context))
+    memory, memory_entries = load_memory()
+    if memory_entries:
+        print(f"  Memory: {memory_entries} entries from {MEMORY_PATH.name}")
+    else:
+        print("  Memory: empty")
+
+    options = build_options(build_system_prompt(business_context, memory))
 
     client = ClaudeSDKClient(options=options)
     try:
@@ -271,6 +280,12 @@ async def run() -> None:
                 print(format_context_summary(stats))
                 if business_context:
                     print(business_context)
+                continue
+            if command == "/memory":
+                fresh, count = load_memory()
+                print(fresh if fresh else "Nothing remembered yet.")
+                print(f"{DIM}({count} entries in {MEMORY_PATH.name};"
+                      f" new ones load at next startup){RESET}")
                 continue
             if command == "/clear":
                 await client.disconnect()
