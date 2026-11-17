@@ -1,3 +1,7 @@
 claude-agent-sdk
 mixpanel_headless
 python-dotenv
+
+# web app (server.py) — not needed for the terminal client
+fastapi
+uvicorn[standard]
