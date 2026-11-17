@@ -1,8 +1,12 @@
-"""The ``remember`` tool: write a durable note to local memory.
+"""The ``remember`` tool.
 
-Writes to ``memory.md`` in the project folder, not to Mixpanel. The file is
-loaded into the system prompt at the next startup, so remembered facts
-survive restarts.
+Writes to Mixpanel's project Business Context, inside a delimited
+``agent-memory`` block, so remembered facts are shared with the team,
+survive redeploys, and are visible in Mixpanel itself.
+
+This WRITES to Mixpanel, so it is gated by the approval prompt like any
+other Mixpanel write. The write is read-modify-write: nothing outside the
+agent-memory block is ever touched.
 """
 
 from __future__ import annotations
@@ -11,31 +15,31 @@ import asyncio
 from typing import Annotated, Any
 
 from claude_agent_sdk import tool
+from mixpanel_headless import MixpanelHeadlessError
 
-from memory import CATEGORIES, append_memory
+from team_memory import CATEGORIES, append_memory, read_memory
 
-from ._common import WRITE, as_text, invalid, ok
+from ._common import WRITE, as_text, error, invalid, ok
 
 
 @tool(
     "remember",
-    "Save one durable fact to local memory so it survives restarts — ownership, naming "
-    "conventions, decisions, or agreed exceptions about this project's tracking. Use it "
-    "when the user tells you something worth keeping ('the payments team owns checkout "
-    "events', 'legacy_ prefixed events are deprecated'), or explicitly says to remember "
-    "something. Do NOT use it for facts you can look up with a tool, for one-off answers, "
-    "or to store findings from an audit — those change, so re-read them instead. This "
-    "writes to a local file only; it does not change anything in Mixpanel.",
+    "Save one durable fact to the team's shared memory — ownership, naming conventions, "
+    "decisions, agreed exceptions about this project's tracking. Use it when the user "
+    "tells you something worth keeping ('the payments team owns checkout events') or says "
+    "to remember something. Do NOT use it for anything a tool can look up, for audit "
+    "findings or counts (they go stale), or for one-off answers. This WRITES to Mixpanel's "
+    "project Business Context, so the whole team sees it and it needs approval.",
     {
         "note": Annotated[
             str,
-            "The fact to remember, as one self-contained sentence. It must make sense "
-            "months later with no conversation around it: write 'The payments team owns "
-            "all checkout_* events' rather than 'they own those'.",
+            "The fact to remember, as one self-contained sentence that will still make "
+            "sense months later with no surrounding conversation: 'The payments team owns "
+            "all checkout_* events', not 'they own those'.",
         ],
         "category": Annotated[
             str | None,
-            "Optional label. Suggested values: 'ownership', 'convention', 'decision', "
+            "Optional label. Suggested: 'ownership', 'convention', 'decision', "
             "'exception', 'context'. Omit if none fits.",
         ],
     },
@@ -50,10 +54,14 @@ async def remember(args: dict[str, Any]) -> dict[str, Any]:
             f"'note' is {len(note)} characters. Keep each memory to one sentence "
             "(under 500 characters); split longer material into several notes."
         )
-
     category = as_text(args.get("category")).lower() or None
 
-    result = await asyncio.to_thread(append_memory, note, category)
+    try:
+        result = await asyncio.to_thread(append_memory, note, category)
+    except MixpanelHeadlessError as exc:
+        return error(exc)
+    except Exception as exc:
+        return error(exc)
 
     if not result.get("ok"):
         return invalid(str(result.get("reason", "could not write memory")))
@@ -62,7 +70,6 @@ async def remember(args: dict[str, Any]) -> dict[str, Any]:
         return ok(
             {
                 "status": "already_known",
-                "entry": result.get("entry"),
                 "entry_count": result.get("entry_count"),
                 "suggested_categories": list(CATEGORIES),
             }
@@ -73,7 +80,28 @@ async def remember(args: dict[str, Any]) -> dict[str, Any]:
             "status": "remembered",
             "entry": result.get("entry"),
             "entry_count": result.get("entry_count"),
-            "file": result.get("path"),
-            "note": "Saved locally. It loads into context at the next startup.",
+            "stored_in": "Mixpanel project Business Context (agent-memory block)",
+            "context_chars": result.get("context_chars"),
+            "preserved_chars": result.get("preserved_chars"),
+            "note": "Visible to the whole team. Loads into context at the next startup.",
         }
     )
+
+
+@tool(
+    "recall_memory",
+    "Read back the team's shared agent memory from Mixpanel Business Context. Use it when "
+    "the user asks what you remember, or when you need to check whether something is "
+    "already recorded before calling remember. The memory is already in your system prompt "
+    "from startup, so only call this if facts may have changed during this session.",
+    {},
+    annotations=None,
+)
+async def recall_memory(args: dict[str, Any]) -> dict[str, Any]:
+    try:
+        body, count = await asyncio.to_thread(read_memory)
+    except MixpanelHeadlessError as exc:
+        return error(exc)
+    except Exception as exc:
+        return error(exc)
+    return ok({"entry_count": count, "markdown": body or "(nothing remembered yet)"})

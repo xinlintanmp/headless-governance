@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Mixpanel Governance</title>
+<style>
+  :root { --bg:#fff; --fg:#1a1a1a; --muted:#6b7280; --line:#e5e7eb; --panel:#f9fafb; --accent:#4f46e5; --danger:#b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0f1115; --fg:#e8e8ea; --muted:#9ca3af; --line:#272a31; --panel:#171a20; --accent:#818cf8; --danger:#f87171; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:var(--fg); padding:16px;
+    font:15px/1.6 ui-sans-serif,-apple-system,"Segoe UI",sans-serif;
+  }
+  .card { width:100%; max-width:360px; border:1px solid var(--line); border-radius:12px; padding:26px; background:var(--panel); }
+  h1 { font-size:17px; margin:0 0 4px; }
+  p.sub { color:var(--muted); font-size:13px; margin:0 0 20px; }
+  label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+  input {
+    width:100%; font:inherit; padding:9px 11px; border:1px solid var(--line);
+    border-radius:8px; background:var(--bg); color:var(--fg);
+  }
+  input:focus { outline:2px solid var(--accent); outline-offset:-1px; }
+  button {
+    width:100%; margin-top:14px; font:inherit; font-weight:500; padding:9px;
+    border:1px solid var(--accent); background:var(--accent); color:#fff;
+    border-radius:8px; cursor:pointer;
+  }
+  button:disabled { opacity:.6; cursor:default; }
+  .err { color:var(--danger); font-size:13px; margin-top:12px; min-height:1.2em; }
+</style>
+</head>
+<body>
+<form class="card" id="form">
+  <h1>Mixpanel Governance</h1>
+  <p class="sub">Enter the shared password to continue.</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password" autofocus required>
+  <button id="go" type="submit">Sign in</button>
+  <div class="err" id="err"></div>
+</form>
+<script>
+const form = document.getElementById('form');
+const pw = document.getElementById('pw');
+const go = document.getElementById('go');
+const err = document.getElementById('err');
+
+form.onsubmit = async (e) => {
+  e.preventDefault();
+  err.textContent = '';
+  go.disabled = true;
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw.value })
+    });
+    if (res.ok) { window.location = '/'; return; }
+    const body = await res.json().catch(() => ({}));
+    err.textContent = body.detail || 'Sign in failed.';
+  } catch (e) {
+    err.textContent = 'Could not reach the server.';
+  } finally {
+    go.disabled = false;
+    pw.select();
+  }
+};
+</script>
+</body>
+</html>

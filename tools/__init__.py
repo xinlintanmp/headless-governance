@@ -8,7 +8,7 @@ Modules
 ``discovery``  what the data has OBSERVED — event names, properties, volume
 ``lexicon``    what Lexicon has REGISTERED — definitions, history, metadata
 ``mutations``  the only tools that change MIXPANEL (see WRITE_TOOL_NAMES)
-``memory``     the ``remember`` tool, which writes only to local memory.md
+``memory``     team memory in Mixpanel Business Context (remember / recall_memory)
 ``_common``    shared result shaping, error conversion, argument parsing
 
 The observed/registered split is deliberate: comparing the two is how the
@@ -32,7 +32,7 @@ from .lexicon import (
     get_property_definitions,
     get_tracking_metadata,
 )
-from .memory import remember
+from .memory import recall_memory, remember
 from .mutations import update_event_definition
 
 # Discovery first: the order is also the order Claude sees them listed.
@@ -45,19 +45,15 @@ READ_TOOLS = [
     get_definition_history,
     get_tracking_metadata,
     export_lexicon,
+    recall_memory,
 ]
 
 WRITE_TOOLS = [
     update_event_definition,
-]
-
-# Writes only to the local memory.md file, never to Mixpanel, so it is not
-# gated by the terminal confirmation in main.py.
-LOCAL_WRITE_TOOLS = [
     remember,
 ]
 
-ALL_TOOLS = READ_TOOLS + WRITE_TOOLS + LOCAL_WRITE_TOOLS
+ALL_TOOLS = READ_TOOLS + WRITE_TOOLS
 
 # Names main.py uses to decide which calls need a human confirmation.
 WRITE_TOOL_NAMES = frozenset(t.name for t in WRITE_TOOLS)
@@ -77,5 +73,5 @@ __all__ = [
     "export_lexicon",
     "update_event_definition",
     "remember",
-    "LOCAL_WRITE_TOOLS",
+    "recall_memory",
 ]

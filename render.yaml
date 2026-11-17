@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: mixpanel-governance
+    runtime: docker
+    plan: starter          # needs >512MB RAM: each session spawns a claude process
+    healthCheckPath: /healthz
+    envVars:
+      # --- set these in the Render dashboard, not here ---
+      - key: MP_PROJECT_ID
+        sync: false
+      - key: MP_WORKSPACE_ID
+        sync: false
+      - key: MP_USERNAME
+        sync: false
+      - key: MP_SECRET
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: APP_PASSWORD
+        sync: false
+      # --- generated once by Render, keeps logins alive across deploys ---
+      - key: SESSION_SECRET
+        generateValue: true
+      # --- safe defaults ---
+      - key: GOVERNANCE_MODEL
+        value: claude-sonnet-5
+      - key: MAX_SESSIONS
+        value: "10"
+      - key: COOKIE_SECURE
+        value: "1"
